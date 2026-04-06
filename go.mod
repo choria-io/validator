@@ -1,6 +1,6 @@
 module github.com/choria-io/validator
 
-go 1.26
+go 1.25.0
 
 require (
 	github.com/choria-io/fisk v0.8.0
