@@ -74,6 +74,16 @@ var _ = Describe("Validator", func() {
 			Expect(ok).To(BeTrue())
 		})
 
+		It("Should validate arbitrarily large integers", func() {
+			ok, err := Validate("99999999999999999999999999999999999999999999999999", "is_int(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			ok, err = Validate("-99999999999999999999999999999999999999999999999999", "is_int(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+		})
+
 		It("Should reject non-integers", func() {
 			ok, err := Validate("bob", "is_int(value)")
 			Expect(err).ToNot(HaveOccurred())
@@ -102,6 +112,12 @@ var _ = Describe("Validator", func() {
 			Expect(ok).To(BeTrue())
 
 			ok, err = Validate("42", "is_float(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+		})
+
+		It("Should validate arbitrarily large floats", func() {
+			ok, err := Validate("1.7976931348623157e+999", "is_float(value)")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ok).To(BeTrue())
 		})
@@ -199,6 +215,86 @@ var _ = Describe("Validator", func() {
 
 		It("Should work with isShellSafe alias", func() {
 			Expect(Validate("ok", "isShellSafe(value)")).To(BeTrue())
+		})
+	})
+
+	Describe("is_hostname", func() {
+		It("Should validate valid hostnames", func() {
+			ok, err := Validate("example", "is_hostname(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			ok, err = Validate("my-host", "is_hostname(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			ok, err = Validate("host1.example.com", "is_hostname(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			ok, err = Validate("a", "is_hostname(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+		})
+
+		It("Should reject invalid hostnames", func() {
+			ok, err := Validate("-invalid", "is_hostname(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+
+			ok, err = Validate("invalid..host", "is_hostname(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+
+			ok, err = Validate(".invalid", "is_hostname(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+
+			ok, err = Validate("host name", "is_hostname(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+		})
+
+		It("Should work with isHostname alias", func() {
+			ok, err := Validate("example", "isHostname(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+		})
+	})
+
+	Describe("is_fqdn", func() {
+		It("Should validate valid FQDNs", func() {
+			ok, err := Validate("host.example.com", "is_fqdn(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			ok, err = Validate("host.example.com.", "is_fqdn(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+
+			ok, err = Validate("my-host.sub.example.org", "is_fqdn(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
+		})
+
+		It("Should reject non-FQDNs", func() {
+			ok, err := Validate("justahostname", "is_fqdn(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+
+			ok, err = Validate("-bad.example.com", "is_fqdn(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+
+			ok, err = Validate("bad..example.com", "is_fqdn(value)")
+			Expect(err).To(HaveOccurred())
+			Expect(ok).To(BeFalse())
+		})
+
+		It("Should work with isFQDN alias", func() {
+			ok, err := Validate("host.example.com", "isFQDN(value)")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ok).To(BeTrue())
 		})
 	})
 

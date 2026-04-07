@@ -6,9 +6,9 @@ package validator
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/choria-io/fisk"
@@ -81,6 +81,8 @@ func Validate(value any, validation string) (bool, error) {
 	opts = append(opts, FloatValidator()...)
 	opts = append(opts, RegexValidator()...)
 	opts = append(opts, DurationValidator()...)
+	opts = append(opts, HostnameValidator()...)
+	opts = append(opts, FQDNValidator()...)
 
 	program, err := expr.Compile(validation, opts...)
 	if err != nil {
@@ -97,7 +99,7 @@ func Validate(value any, validation string) (bool, error) {
 
 func FloatValidator() []expr.Option {
 	f := func(params ...any) (any, error) {
-		_, err := strconv.ParseFloat(params[0].(string), 64)
+		_, _, err := big.ParseFloat(params[0].(string), 10, 256, big.ToNearestEven)
 		return err == nil, nil
 	}
 
@@ -109,8 +111,8 @@ func FloatValidator() []expr.Option {
 
 func IntValidator() []expr.Option {
 	f := func(params ...any) (any, error) {
-		_, err := strconv.Atoi(params[0].(string))
-		return err == nil, nil
+		_, ok := new(big.Int).SetString(params[0].(string), 10)
+		return ok, nil
 	}
 
 	return []expr.Option{
@@ -224,5 +226,44 @@ func ShellSafeValidator() []expr.Option {
 	return []expr.Option{
 		expr.Function("isShellSafe", f, new(func(string) (bool, error))),
 		expr.Function("is_shellsafe", f, new(func(string) (bool, error))),
+	}
+}
+
+var (
+	hostnameRegexRFC1123 = regexp.MustCompile(`^([a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62}){1}(\.[a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62})*?$`)
+	fqdnRegexRFC1123     = regexp.MustCompile(`^([a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62})(\.[a-zA-Z0-9]{1}[a-zA-Z0-9-]{0,62})*?(\.[a-zA-Z]{1}[a-zA-Z0-9-]{0,62})\.?$`)
+)
+
+func HostnameValidator() []expr.Option {
+	f := func(params ...any) (any, error) {
+		val := params[0].(string)
+
+		if !hostnameRegexRFC1123.MatchString(val) {
+			return false, fmt.Errorf("%q is not a valid hostname", val)
+		}
+
+		return true, nil
+	}
+
+	return []expr.Option{
+		expr.Function("isHostname", f, new(func(string) (bool, error))),
+		expr.Function("is_hostname", f, new(func(string) (bool, error))),
+	}
+}
+
+func FQDNValidator() []expr.Option {
+	f := func(params ...any) (any, error) {
+		val := params[0].(string)
+
+		if !fqdnRegexRFC1123.MatchString(val) {
+			return false, fmt.Errorf("%q is not a valid FQDN", val)
+		}
+
+		return true, nil
+	}
+
+	return []expr.Option{
+		expr.Function("isFQDN", f, new(func(string) (bool, error))),
+		expr.Function("is_fqdn", f, new(func(string) (bool, error))),
 	}
 }
